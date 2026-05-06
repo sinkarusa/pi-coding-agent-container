@@ -71,7 +71,15 @@ RUN npm install -g \
     @mariozechner/pi-coding-agent \
     @mariozechner/pi-ai \
     @anthropic-ai/claude-code \
-    @gotgenes/pi-anthropic-auth
+    @gotgenes/pi-anthropic-auth \
+    pi-lens \
+    pi-subagents \
+    @juicesharp/rpiv-todo \
+    @juicesharp/rpiv-web-tools \
+    @casualjim/pi-superpowers \
+    typescript \
+    typescript-language-server \
+    pyright
 
 RUN mkdir -p /home/node/.pi/agent \
     /home/node/.claude \

@@ -49,7 +49,22 @@ make run                 # start pi
 /model                   # pick a Claude model — extension auto-shapes the request
 ```
 
-Pi's Anthropic OAuth session is written to `~/.pi/agent/auth.json` and persisted via the bound `./.pi-data/` volume, so subsequent runs reuse the login. To verify the extension actually loaded after first run, look for `packages: ["…/pi-anthropic-auth"]` in `./.pi-data/agent/settings.json`.
+Pi's Anthropic OAuth session is written to `~/.pi/agent/auth.json` and persisted via the bound `./.pi-data/` volume, so subsequent runs reuse the login. To verify the extensions actually loaded after first run, check the `packages` array in `./.pi-data/agent/settings.json`.
+
+**Bundled pi extensions**
+
+The image bakes in a curated extension set so pi behaves more like Claude Code out of the box. All are registered automatically on first launch via local-path `pi install` (the container's read-only root blocks `pi install npm:…` at runtime, so we install via npm globally at build time and register at runtime).
+
+| Extension | What it adds |
+|---|---|
+| [`@gotgenes/pi-anthropic-auth`](https://github.com/gotgenes/pi-anthropic-auth) | Reshapes Anthropic requests so Pro/Max OAuth subscriptions work |
+| [`pi-lens`](https://www.npmjs.com/package/pi-lens) | LSP, linters, formatters, type-checking — real-time code feedback |
+| [`pi-subagents`](https://www.npmjs.com/package/pi-subagents) | Parallel sub-agent delegation (Claude Code's `Task` tool equivalent) |
+| [`@juicesharp/rpiv-todo`](https://www.npmjs.com/package/@juicesharp/rpiv-todo) | Live TODO overlay that survives `/reload` and compaction |
+| [`@juicesharp/rpiv-web-tools`](https://www.npmjs.com/package/@juicesharp/rpiv-web-tools) | Web search + fetch (Brave Search backend) |
+| [`@casualjim/pi-superpowers`](https://github.com/casualjim/pi-superpowers) | obra's Superpowers methodology adapted for pi — Brainstorm → Plan → Execute → Verify → Review → Finish workflow guardrails |
+
+Pi has no native permission system — every tool call runs without prompts. That's the equivalent of Claude Code's `--dangerously-skip-permissions`, on by default. If you ever want approval gating, install [`@gotgenes/pi-permission-system`](https://www.npmjs.com/package/@gotgenes/pi-permission-system).
 
 **Working on a repo outside this directory**
 Set `WORKSPACE_DIR` to any host path; the container mounts it at `/workspace`. Files are owned by your host UID, so `git`/`gh` Just Work.
