@@ -1,6 +1,10 @@
 .pi-data
+.claude-data
+.secrets
 workspace
 .env
 experiments
 dev
 github_token.txt
+*.swp
+*.swo

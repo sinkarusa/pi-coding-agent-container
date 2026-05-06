@@ -17,32 +17,28 @@ static void init_hook() {
 
 int is_blocked(const char *pathname) {
     if (!pathname) return 0;
-    
+
     if (strstr(pathname, "auth.json") != NULL) {
         init_hook();
         if (!real_open) return 0; // Failsafe
-        
+
         int fd = real_open("/proc/self/cmdline", O_RDONLY);
         if (fd >= 0) {
             char cmdline[512] = {0};
             ssize_t bytes = read(fd, cmdline, 511);
             close(fd);
-            
+
             if (bytes > 0) {
-                // Convert null terminators to spaces for strstr parsing
                 for (ssize_t i = 0; i < bytes; i++) {
                     if (cmdline[i] == '\0') cmdline[i] = ' ';
                 }
-                
-                // Whitelist the primary application process.
-                // The main agent must be allowed to read its token to authenticate with Copilot.
+                // Allow the pi binary itself to read its auth.json.
                 if (strstr(cmdline, "pi ") != NULL || strstr(cmdline, "/bin/pi") != NULL) {
-                    return 0; // ALLOW
+                    return 0;
                 }
             }
         }
-        // Block all external utilities (cat, grep, tail) and custom agent scripts (node script.js)
-        return 1; // BLOCK
+        return 1;
     }
     return 0;
 }

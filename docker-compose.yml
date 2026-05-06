@@ -28,9 +28,13 @@ services:
         target: ${SECRET_TARGET_PATH:-/run/secrets/gh_default}
 
     volumes:
-      - workspace:/workspace
+      - type: bind
+        source: ${WORKSPACE_DIR:-./workspace}
+        target: /workspace
       - pi_data:/home/node/.pi
-      
+      - claude_data:/home/node/.claude
+      - ./.claude-data/.claude.json:/home/node/.claude.json
+
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
 
     read_only: true
@@ -39,6 +43,7 @@ services:
       - /tmp:noexec,nodev,nosuid,mode=1777
       - /home/node/.config:uid=${HOST_UID:-1000},gid=${HOST_GID:-1000},mode=700,noexec,nodev,nosuid
       - /home/node/.npm:uid=${HOST_UID:-1000},gid=${HOST_GID:-1000},mode=700,noexec,nodev,nosuid
+      - /home/node/.cache:uid=${HOST_UID:-1000},gid=${HOST_GID:-1000},mode=700,noexec,nodev,nosuid
 
     pids_limit: 150
 
@@ -55,12 +60,12 @@ volumes:
       o: bind
       device: ${PWD}/.pi-data
 
-  workspace:
+  claude_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${PWD}/workspace
+      device: ${PWD}/.claude-data
 
 networks:
   pi_network:

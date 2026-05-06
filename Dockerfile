@@ -61,19 +61,31 @@ COPY src/app-firewall.js /usr/local/lib/app-firewall.js
 
 # Force Node.js to load the firewall before initializing the agent
 ENV NODE_OPTIONS="--require /usr/local/lib/app-firewall.js"
+ENV UV_PYTHON_PREFERENCE=only-system
 
 FROM base AS release
 
-RUN npm install -g @mariozechner/pi-coding-agent
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
+RUN npm install -g \
+    @mariozechner/pi-coding-agent \
+    @mariozechner/pi-ai \
+    @anthropic-ai/claude-code \
+    @gotgenes/pi-anthropic-auth
 
 RUN mkdir -p /home/node/.pi/agent \
+    /home/node/.claude \
     /workspace \
     /home/node/.config \
     /home/node/.npm && \
     chown -R node:node /home/node/.pi \
+    /home/node/.claude \
     /workspace \
     /home/node/.config \
     /home/node/.npm
+
+COPY src/pi-entrypoint.sh /usr/local/bin/pi-entrypoint
+RUN chmod 0755 /usr/local/bin/pi-entrypoint
 
 WORKDIR /workspace
 
@@ -83,5 +95,5 @@ USER node
 RUN git config --global credential.https://github.com.helper "" && \
     git config --global credential.https://github.com.helper "!/usr/bin/gh auth git-credential"
 
-ENTRYPOINT ["pi"]
+ENTRYPOINT ["/usr/local/bin/pi-entrypoint"]
 CMD []
