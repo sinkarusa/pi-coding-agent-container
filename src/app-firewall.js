@@ -3,13 +3,22 @@ const fs = require("fs");
 function block(p) {
     if (!p) return;
     const s = p.toString();
-    
-    // Target the sensitive configuration and credential paths
-    if (s.includes(".pi/agent") || s.includes("gh_") || s.includes(".secrets") || s.includes(".env")) {
-        // If the execution stack originates from the AI agent's tools, block it.
-        // This allows the core application (like /login) to operate normally.
+
+    // Block only credential/secret-bearing paths. Pi's settings.json,
+    // models.json, sessions/, and extension state under .pi/agent are
+    // legitimately needed by extensions like pi-subagents that load
+    // from /tools/.
+    const isSensitive =
+        s.includes("auth.json") ||
+        s.includes("credentials.json") ||
+        s.includes("/.pi/agent/.secrets") ||
+        s.includes("gh_") ||
+        s.includes("/.secrets/") ||
+        s.endsWith(".env") || s.includes("/.env.");
+
+    if (isSensitive) {
         if (new Error().stack.includes("/tools/")) {
-            throw new Error("[SYSTEM BLOCK] Agent is sandboxed and cannot access configuration or credential files.");
+            throw new Error("[SYSTEM BLOCK] Agent is sandboxed and cannot access credential files.");
         }
     }
 }

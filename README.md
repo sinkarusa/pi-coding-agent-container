@@ -59,10 +59,10 @@ The image bakes in a curated extension set so pi behaves more like Claude Code o
 |---|---|
 | [`@gotgenes/pi-anthropic-auth`](https://github.com/gotgenes/pi-anthropic-auth) | Reshapes Anthropic requests so Pro/Max OAuth subscriptions work |
 | [`pi-lens`](https://www.npmjs.com/package/pi-lens) | LSP, linters, formatters, type-checking — real-time code feedback |
-| [`pi-subagents`](https://www.npmjs.com/package/pi-subagents) | Parallel sub-agent delegation (Claude Code's `Task` tool equivalent) |
+| [`pi-subagents`](https://www.npmjs.com/package/pi-subagents) | Sub-agent delegation with auto-discovery of custom agents in `.pi/agents/` |
 | [`@juicesharp/rpiv-todo`](https://www.npmjs.com/package/@juicesharp/rpiv-todo) | Live TODO overlay that survives `/reload` and compaction |
 | [`@juicesharp/rpiv-web-tools`](https://www.npmjs.com/package/@juicesharp/rpiv-web-tools) | Web search + fetch (Brave Search backend) |
-| [`@casualjim/pi-superpowers`](https://github.com/casualjim/pi-superpowers) | obra's Superpowers methodology adapted for pi — Brainstorm → Plan → Execute → Verify → Review → Finish workflow guardrails |
+| [`pi-superpowers-plus`](https://github.com/coctostan/pi-superpowers-plus) | obra's Superpowers methodology adapted for pi — Brainstorm → Plan → Execute → Verify → Review → Finish, plus bundled `code-reviewer` / `spec-reviewer` subagents and runtime TDD/verification enforcement. Its bundled `subagent` extension is auto-disabled in favor of standalone `pi-subagents` (which supports custom agent discovery from `.pi/agents/`); the bundled reviewer agent definitions still load as resources. |
 
 Pi has no native permission system — every tool call runs without prompts. That's the equivalent of Claude Code's `--dangerously-skip-permissions`, on by default. If you ever want approval gating, install [`@gotgenes/pi-permission-system`](https://www.npmjs.com/package/@gotgenes/pi-permission-system).
 

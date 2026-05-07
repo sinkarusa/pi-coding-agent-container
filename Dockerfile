@@ -76,7 +76,7 @@ RUN npm install -g \
     pi-subagents \
     @juicesharp/rpiv-todo \
     @juicesharp/rpiv-web-tools \
-    @casualjim/pi-superpowers \
+    pi-superpowers-plus \
     typescript \
     typescript-language-server \
     pyright
