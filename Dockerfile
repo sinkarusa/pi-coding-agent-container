@@ -68,8 +68,8 @@ FROM base AS release
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 RUN npm install -g \
-    @mariozechner/pi-coding-agent \
-    @mariozechner/pi-ai \
+    @earendil-works/pi-coding-agent \
+    @earendil-works/pi-ai \
     @anthropic-ai/claude-code \
     @gotgenes/pi-anthropic-auth \
     pi-lens \
@@ -77,6 +77,7 @@ RUN npm install -g \
     @juicesharp/rpiv-todo \
     @juicesharp/rpiv-web-tools \
     pi-superpowers-plus \
+    @quintinshaw/pi-dynamic-workflows \
     typescript \
     typescript-language-server \
     pyright

@@ -21,7 +21,8 @@ if [ ! -f "$EXTENSIONS_MARKER" ]; then
         /usr/local/lib/node_modules/pi-subagents \
         /usr/local/lib/node_modules/@juicesharp/rpiv-todo \
         /usr/local/lib/node_modules/@juicesharp/rpiv-web-tools \
-        /usr/local/lib/node_modules/pi-superpowers-plus
+        /usr/local/lib/node_modules/pi-superpowers-plus \
+        /usr/local/lib/node_modules/@quintinshaw/pi-dynamic-workflows
     do
         if [ -d "$ext" ]; then
             pi install "$ext" >/dev/null 2>&1 || true
