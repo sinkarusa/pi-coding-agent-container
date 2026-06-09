@@ -33,6 +33,9 @@ run: setup
 run-args: setup
 	HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose run --rm pi-agent $(args)
 
+run-with-db: setup
+	HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose -f docker-compose.yml -f docker-compose.db.yml run --rm pi-agent
+
 shell: setup
 	HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose run --entrypoint /bin/bash --rm pi-agent
 

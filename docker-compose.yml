@@ -4,8 +4,6 @@ services:
       context: .
       dockerfile: Dockerfile
     image: local/pi-coding-agent:latest
-    container_name: pi_coding_agent
-    
     tty: true
     stdin_open: true
 
