@@ -7,7 +7,7 @@ Almost secure, containerized environment for running the [pi coding agent](https
 **1. Configuration**
 ```bash
 cp .env.example .env
-# Edit .env with your GitHub token and Git identity
+# Edit .env — add your GitHub token, Git identity, and any LLM API keys
 ```
 
 **2. Build**
@@ -21,6 +21,42 @@ Starts the agent in interactive TUI mode.
 ```bash
 make run
 ```
+
+---
+
+## LLM API Keys
+
+Add keys for any providers you want in `.env`. Only providers with a key are available.
+
+```bash
+# Anthropic — https://console.anthropic.com/keys
+ANTHROPIC_API_KEY=sk-ant-...
+
+# OpenAI — https://platform.openai.com/api-keys
+OPENAI_API_KEY=sk-...
+
+# OpenRouter (100+ models via one key) — https://openrouter.ai/keys
+OPENROUTER_API_KEY=sk-or-...
+```
+
+All providers supported: Anthropic, OpenAI, OpenRouter, Gemini, DeepSeek, Mistral, Groq, xAI. See `.env.example` for the full list with signup links.
+
+Keys flow: `.env` → docker-compose `environment` → `pi-entrypoint.sh` writes `~/.pi/agent/auth.json` — they never appear in any docker command or tracked file.
+
+To check which providers are active after `make run`:
+```bash
+make providers
+```
+
+**Selecting a model at runtime:** press `Ctrl+L` inside pi to open the model picker across all active providers. Use `Ctrl+P` to cycle a scoped shortlist.
+
+**Subagents on different providers:** you can dispatch individual subagents to specific models:
+```
+# inside pi:
+Run two reviewers in parallel: one using anthropic/claude-opus-4-5,
+one using openai/gpt-4o.
+```
+Any provider with a key in `.env` is available to subagents.
 
 ---
 

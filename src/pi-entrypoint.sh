@@ -29,23 +29,35 @@ if [ ! -f "$EXTENSIONS_MARKER" ]; then
         fi
     done
 
-    SETTINGS="$HOME/.pi/agent/settings.json"
-    if [ -f "$SETTINGS" ]; then
-        python3 - <<'PY'
+    : > "$EXTENSIONS_MARKER"
+fi
+
+# Configure settings.json on every start (idempotent):
+#   - disable the pi-superpowers-plus bundled subagent (conflicts with pi-subagents)
+#   - route all LLM inference through the credential-proxy sidecar so real
+#     API keys never enter this container's address space
+python3 - <<'PY'
 import json, pathlib
+
 p = pathlib.Path.home() / ".pi/agent/settings.json"
-data = json.loads(p.read_text())
+data = json.loads(p.read_text()) if p.exists() else {}
+
 pkgs = data.get("packages", [])
 for i, entry in enumerate(pkgs):
     src = entry if isinstance(entry, str) else entry.get("source", "")
     if src.endswith("pi-superpowers-plus"):
         pkgs[i] = {"source": src, "extensions": ["-extensions/subagent/index.ts"]}
-data["packages"] = pkgs
+if pkgs:
+    data["packages"] = pkgs
+
+data["providers"] = {
+    "anthropic":  {"baseUrl": "http://credential-proxy:8080/anthropic"},
+    "openai":     {"baseUrl": "http://credential-proxy:8080/openai/v1"},
+    "openrouter": {"baseUrl": "http://credential-proxy:8080/openrouter/api/v1"},
+}
+
+p.parent.mkdir(parents=True, exist_ok=True)
 p.write_text(json.dumps(data, indent=2) + "\n")
 PY
-    fi
-
-    : > "$EXTENSIONS_MARKER"
-fi
 
 exec pi "$@"

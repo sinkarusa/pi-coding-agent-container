@@ -1,4 +1,20 @@
 services:
+  credential-proxy:
+    build:
+      context: .
+      dockerfile: src/credential-proxy/Dockerfile
+    image: local/pi-credential-proxy:latest
+    environment:
+      # Real API keys live here only — never forwarded to the agent container
+      - ANTHROPIC_API_KEY
+      - OPENAI_API_KEY
+      - OPENROUTER_API_KEY
+      - GITHUB_TOKEN
+    networks:
+      - pi_network
+    read_only: true
+    restart: "no"
+
   pi-agent:
     build:
       context: .
@@ -6,6 +22,8 @@ services:
     image: local/pi-coding-agent:latest
     tty: true
     stdin_open: true
+    depends_on:
+      - credential-proxy
 
     environment:
       - HOST_UID=${HOST_UID:-1000}
@@ -20,6 +38,12 @@ services:
       - GIT_CONFIG_VALUE_0=${GIT_GPG_KEY}
       - GIT_CONFIG_KEY_1=commit.gpgsign
       - GIT_CONFIG_VALUE_1=${GIT_GPG_SIGN:-false}
+      # LLM inference is routed through credential-proxy; real keys never reach this container
+      - ANTHROPIC_API_KEY=proxy
+      - OPENAI_API_KEY=proxy
+      - OPENROUTER_API_KEY=proxy
+      # GitHub REST API routed through credential-proxy; git ops use the gh-vault secret mechanism
+      - GITHUB_API_URL=http://credential-proxy:8080/github
 
     secrets:
       - source: github_token

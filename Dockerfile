@@ -67,6 +67,32 @@ FROM base AS release
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
+# -----------------------------------------------------------------------------
+# pi-lens tools — linters and formatters used by the coding agent
+# -----------------------------------------------------------------------------
+
+# shfmt — shell script formatter
+RUN curl -fsSL "https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_linux_amd64" \
+    -o /usr/local/bin/shfmt && chmod +x /usr/local/bin/shfmt
+
+# hadolint — Dockerfile linter
+RUN curl -fsSL "https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-linux-x86_64" \
+    -o /usr/local/bin/hadolint && chmod +x /usr/local/bin/hadolint
+
+# actionlint — GitHub Actions linter
+RUN curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz" \
+    | tar -xz -C /usr/local/bin actionlint
+
+# gitleaks — secret scanner
+RUN curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz" \
+    | tar -xz -C /usr/local/bin gitleaks
+
+# ruff, yamllint, mypy — Python linting and type checking
+# UV_TOOL_BIN_DIR puts the executables in /usr/local/bin so node user can find them
+RUN UV_TOOL_BIN_DIR=/usr/local/bin uv tool install ruff \
+    && UV_TOOL_BIN_DIR=/usr/local/bin uv tool install yamllint \
+    && UV_TOOL_BIN_DIR=/usr/local/bin uv tool install mypy
+
 RUN npm install -g \
     @earendil-works/pi-coding-agent \
     @earendil-works/pi-ai \
