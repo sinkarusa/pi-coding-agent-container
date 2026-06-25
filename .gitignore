@@ -3,6 +3,7 @@
 .secrets
 workspace
 .env
+.env.bkp
 experiments
 dev
 github_token.txt
