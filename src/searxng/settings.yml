@@ -1,0 +1,30 @@
+# SearXNG settings — minimal config for pi-coding-agent web search
+# https://docs.searxng.org/admin/settings/settings.html
+
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "pi-searxng"
+
+search:
+  safe_search: 0  # Intentional: agent must search security/technical topics without content filtering
+  formats:
+    - html
+    - json
+
+server:
+  # Bind on all interfaces inside the container
+  bind_address: "0.0.0.0"
+  port: 8080
+  secret_key: "${SEARXNG_SECRET_KEY}"
+  limiter: false  # Intentional: single-user local instance; rate limiting causes 429s on parallel agent searches
+  image_proxy: false
+
+ui:
+  static_use_hash: true
+
+# Disable rate limiting so the agent can search freely
+outgoing:
+  request_timeout: 10.0
+  max_request_timeout: 30.0

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:22-bookworm-slim AS base
+FROM node:22-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a5968bbbdef8d058f9dff4 AS base
 
 ENV NODE_ENV=production
 ENV DEBIAN_FRONTEND=noninteractive
@@ -93,20 +93,25 @@ RUN UV_TOOL_BIN_DIR=/usr/local/bin uv tool install ruff \
     && UV_TOOL_BIN_DIR=/usr/local/bin uv tool install yamllint \
     && UV_TOOL_BIN_DIR=/usr/local/bin uv tool install mypy
 
+COPY src/extensions.txt /usr/local/lib/extensions.txt
+
+# Infrastructure packages (pi agent core + dev tools — not pi extensions)
 RUN npm install -g \
     @earendil-works/pi-coding-agent \
     @earendil-works/pi-ai \
+    @earendil-works/pi-tui \
     @anthropic-ai/claude-code \
-    @gotgenes/pi-anthropic-auth \
-    pi-lens \
-    pi-subagents \
-    @juicesharp/rpiv-todo \
-    @juicesharp/rpiv-web-tools \
-    pi-superpowers-plus \
-    @quintinshaw/pi-dynamic-workflows \
+    typebox \
+    yaml \
+    jiti \
+    @standard-schema/spec \
     typescript \
     typescript-language-server \
     pyright
+
+# Extension packages — canonical list is /usr/local/lib/extensions.txt
+# (kept in image so entrypoint can read at runtime)
+RUN xargs npm install -g < /usr/local/lib/extensions.txt
 
 RUN mkdir -p /home/node/.pi/agent \
     /home/node/.claude \
@@ -118,6 +123,22 @@ RUN mkdir -p /home/node/.pi/agent \
     /workspace \
     /home/node/.config \
     /home/node/.npm
+
+# Pull mattpocock/skills from GitHub and patch package.json so pi can discover it
+# (upstream is private:true and lacks the pi.skills field)
+RUN git clone --filter=blob:none --no-checkout https://github.com/mattpocock/skills.git /tmp/mattpocock-skills \
+    && git -C /tmp/mattpocock-skills checkout 5d78bd0903420f97c791f834201e550c765699f8 \
+    && node -e "\
+      const fs = require('fs'); \
+      const p = JSON.parse(fs.readFileSync('/tmp/mattpocock-skills/package.json','utf8')); \
+      delete p.private; \
+      p.pi = { skills: ['skills'] }; \
+      fs.writeFileSync('/tmp/mattpocock-skills/package.json', JSON.stringify(p, null, 2)); \
+    " && \
+    find /tmp/mattpocock-skills/skills -name 'SKILL.md' \
+      -exec sed -i 's/^name: /name: mp-/' {} \; && \
+    cp -r /tmp/mattpocock-skills /usr/local/lib/node_modules/mattpocock-skills && \
+    rm -rf /tmp/mattpocock-skills
 
 COPY src/pi-entrypoint.sh /usr/local/bin/pi-entrypoint
 RUN chmod 0755 /usr/local/bin/pi-entrypoint

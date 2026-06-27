@@ -9,3 +9,7 @@ dev
 github_token.txt
 *.swp
 *.swo
+docker-compose.db.yml
+.rpiv
+.claude
+.pi

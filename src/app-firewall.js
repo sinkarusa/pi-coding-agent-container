@@ -1,5 +1,17 @@
 const fs = require("fs");
 
+// Sensitive path patterns — any fs access matching these from the agent
+// sandbox (/tools/) is blocked. Edit this list to change the policy.
+const SENSITIVE_PATTERNS = [
+    { match: "includes", value: "auth.json",            reason: "pi auth tokens" },
+    { match: "includes", value: "credentials.json",     reason: "OAuth credentials" },
+    { match: "includes", value: "/.pi/agent/.secrets",  reason: "pi secret store" },
+    { match: "includes", value: "/run/secrets/gh_",     reason: "GitHub token secret files" },
+    { match: "includes", value: "/.secrets/",           reason: "host secrets directory" },
+    { match: "endsWith", value: ".env",                 reason: "environment file" },
+    { match: "includes", value: "/.env.",               reason: "environment file variants" },
+];
+
 function block(p) {
     if (!p) return;
     const s = p.toString();
@@ -8,13 +20,7 @@ function block(p) {
     // models.json, sessions/, and extension state under .pi/agent are
     // legitimately needed by extensions like pi-subagents that load
     // from /tools/.
-    const isSensitive =
-        s.includes("auth.json") ||
-        s.includes("credentials.json") ||
-        s.includes("/.pi/agent/.secrets") ||
-        s.includes("gh_") ||
-        s.includes("/.secrets/") ||
-        s.endsWith(".env") || s.includes("/.env.");
+    const isSensitive = SENSITIVE_PATTERNS.some(({ match, value }) => s[match](value));
 
     if (isSensitive) {
         if (new Error().stack.includes("/tools/")) {

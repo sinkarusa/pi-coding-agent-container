@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -33,8 +34,8 @@ int main(int argc, char **argv) {
         closedir(d);
     }
 
-    setreuid(uid, uid);
-    setregid(gid, gid);
+    if (setresuid(uid, uid, uid) != 0) { perror("setresuid"); return 1; }
+    if (setresgid(gid, gid, gid) != 0) { perror("setresgid"); return 1; }
 
     argv[0] = "/usr/local/bin/gh-guard";
     execv("/usr/local/bin/gh-guard", argv);

@@ -1,4 +1,17 @@
 services:
+  searxng:
+    image: searxng/searxng:latest
+    volumes:
+      - ./src/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    networks:
+      - pi_network
+    restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      - SEARXNG_SECRET_KEY
+
   credential-proxy:
     build:
       context: .
@@ -24,6 +37,7 @@ services:
     stdin_open: true
     depends_on:
       - credential-proxy
+      - searxng
 
     environment:
       - HOST_UID=${HOST_UID:-1000}
@@ -44,6 +58,8 @@ services:
       - OPENROUTER_API_KEY=proxy
       # GitHub REST API routed through credential-proxy; git ops use the gh-vault secret mechanism
       - GITHUB_API_URL=http://credential-proxy:8080/github
+      # SearXNG web search — no API key needed for a local instance
+      - SEARXNG_URL=http://searxng:8080
 
     secrets:
       - source: github_token
@@ -68,7 +84,12 @@ services:
       - /home/node/.cache:uid=${HOST_UID:-1000},gid=${HOST_GID:-1000},mode=700,noexec,nodev,nosuid
       - /home/node/.pi-lens:uid=${HOST_UID:-1000},gid=${HOST_GID:-1000},mode=700,noexec,nodev,nosuid
 
-    pids_limit: 150
+    deploy:
+      resources:
+        limits:
+          memory: ${MEM_LIMIT:-4g}
+          cpus: "${CPUS:-4.0}"
+          pids: 150
 
     networks:
       - pi_network

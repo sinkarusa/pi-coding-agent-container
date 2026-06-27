@@ -1,0 +1,13 @@
+@gotgenes/pi-anthropic-auth
+pi-lens
+@tintinweb/pi-subagents
+@juicesharp/rpiv-pi
+@juicesharp/rpiv-advisor
+@juicesharp/rpiv-args
+@juicesharp/rpiv-ask-user-question
+@juicesharp/rpiv-btw
+@juicesharp/rpiv-i18n
+@juicesharp/rpiv-todo
+@juicesharp/rpiv-web-tools
+@juicesharp/rpiv-workflow
+@quintinshaw/pi-dynamic-workflows

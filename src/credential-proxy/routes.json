@@ -1,0 +1,26 @@
+[
+  {
+    "prefix": "/anthropic",
+    "upstream": "https://api.anthropic.com",
+    "envVar": "ANTHROPIC_API_KEY",
+    "authStyle": "x-api-key"
+  },
+  {
+    "prefix": "/openai",
+    "upstream": "https://api.openai.com",
+    "envVar": "OPENAI_API_KEY",
+    "authStyle": "bearer"
+  },
+  {
+    "prefix": "/openrouter",
+    "upstream": "https://openrouter.ai",
+    "envVar": "OPENROUTER_API_KEY",
+    "authStyle": "bearer"
+  },
+  {
+    "prefix": "/github",
+    "upstream": "https://api.github.com",
+    "envVar": "GITHUB_TOKEN",
+    "authStyle": "token"
+  }
+]

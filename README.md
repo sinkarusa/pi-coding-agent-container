@@ -22,11 +22,15 @@ Starts the agent in interactive TUI mode.
 make run
 ```
 
+> **Note:** Always use `make run` (or other `make` targets) rather than `docker compose run` directly.
+> The Makefile sets `WORKSPACE_DIR`, `HOST_UID`, and `HOST_GID` required by all compose targets;
+> direct `docker compose` invocations skip this setup and will use wrong or unset values.
+
 ---
 
 ## LLM API Keys
 
-Add keys for any providers you want in `.env`. Only providers with a key are available.
+Add keys for the three providers sandboxed through the credential-proxy in `.env`.
 
 ```bash
 # Anthropic — https://console.anthropic.com/keys
@@ -39,7 +43,7 @@ OPENAI_API_KEY=sk-...
 OPENROUTER_API_KEY=sk-or-...
 ```
 
-All providers supported: Anthropic, OpenAI, OpenRouter, Gemini, DeepSeek, Mistral, Groq, xAI. See `.env.example` for the full list with signup links.
+Three providers are routed through the credential-proxy sidecar: **Anthropic**, **OpenAI**, and **OpenRouter**. Other providers (Gemini, DeepSeek, Mistral, Groq, xAI, etc.) are not currently sandboxed through the proxy and will not be available to the agent.
 
 Keys flow: `.env` → docker-compose `environment` → `pi-entrypoint.sh` writes `~/.pi/agent/auth.json` — they never appear in any docker command or tracked file.
 
@@ -56,7 +60,7 @@ make providers
 Run two reviewers in parallel: one using anthropic/claude-opus-4-5,
 one using openai/gpt-4o.
 ```
-Any provider with a key in `.env` is available to subagents.
+Any of the three proxied providers (Anthropic, OpenAI, OpenRouter) with a key in `.env` is available to subagents.
 
 ---
 
@@ -98,7 +102,6 @@ The image bakes in a curated extension set so pi behaves more like Claude Code o
 | [`pi-subagents`](https://www.npmjs.com/package/pi-subagents) | Sub-agent delegation with auto-discovery of custom agents in `.pi/agents/` |
 | [`@juicesharp/rpiv-todo`](https://www.npmjs.com/package/@juicesharp/rpiv-todo) | Live TODO overlay that survives `/reload` and compaction |
 | [`@juicesharp/rpiv-web-tools`](https://www.npmjs.com/package/@juicesharp/rpiv-web-tools) | Web search + fetch (Brave Search backend) |
-| [`pi-superpowers-plus`](https://github.com/coctostan/pi-superpowers-plus) | obra's Superpowers methodology adapted for pi — Brainstorm → Plan → Execute → Verify → Review → Finish, plus bundled `code-reviewer` / `spec-reviewer` subagents and runtime TDD/verification enforcement. Its bundled `subagent` extension is auto-disabled in favor of standalone `pi-subagents` (which supports custom agent discovery from `.pi/agents/`); the bundled reviewer agent definitions still load as resources. |
 
 Pi has no native permission system — every tool call runs without prompts. That's the equivalent of Claude Code's `--dangerously-skip-permissions`, on by default. If you ever want approval gating, install [`@gotgenes/pi-permission-system`](https://www.npmjs.com/package/@gotgenes/pi-permission-system).
 
@@ -156,6 +159,39 @@ make clean
 # Force rebuild the image without cache
 make update
 ```
+
+---
+
+## Project-specific network overlays
+
+If your project requires access to an external Docker network (e.g., a database container managed
+by a separate compose project), create a local overlay file — **never commit it**:
+
+```yaml
+# docker-compose.db.yml  ← gitignored; do not commit
+services:
+  pi-agent:
+    networks:
+      - myproject_db
+
+networks:
+  myproject_db:
+    name: ${MYPROJECT_NETWORK:-myproject_default}
+    external: true
+```
+
+Run with the overlay:
+```bash
+make run-with-db  # passes -f docker-compose.db.yml — see Makefile
+```
+
+Or pass it directly (always go through `make`, not bare `docker compose`):
+```bash
+HOST_UID=$(id -u) HOST_GID=$(id -g) \
+  docker compose -f docker-compose.yml -f docker-compose.db.yml run --rm pi-agent
+```
+
+Keep overlay files in `.gitignore`; add a gitignored `Makefile.local` for project-specific targets.
 
 ---
 
