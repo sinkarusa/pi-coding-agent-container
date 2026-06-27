@@ -110,9 +110,11 @@ The image bakes in a curated extension set so pi behaves more like Claude Code o
 |---|---|
 | [`@gotgenes/pi-anthropic-auth`](https://github.com/gotgenes/pi-anthropic-auth) | Reshapes Anthropic requests so Pro/Max OAuth subscriptions work |
 | [`pi-lens`](https://www.npmjs.com/package/pi-lens) | LSP, linters, formatters, type-checking — real-time code feedback |
-| [`pi-subagents`](https://www.npmjs.com/package/pi-subagents) | Sub-agent delegation with auto-discovery of custom agents in `.pi/agents/` |
+| [`@tintinweb/pi-subagents`](https://www.npmjs.com/package/@tintinweb/pi-subagents) | Sub-agent delegation with auto-discovery of custom agents in `.pi/agents/` |
 | [`@juicesharp/rpiv-todo`](https://www.npmjs.com/package/@juicesharp/rpiv-todo) | Live TODO overlay that survives `/reload` and compaction |
-| [`@juicesharp/rpiv-web-tools`](https://www.npmjs.com/package/@juicesharp/rpiv-web-tools) | Web search + fetch (Brave Search backend) |
+| [`@juicesharp/rpiv-web-tools`](https://www.npmjs.com/package/@juicesharp/rpiv-web-tools) | Web search + fetch via the local **SearXNG** sidecar (no API key — set as the default provider on every start) |
+
+The table above is a selection of highlights; the canonical, complete list of bundled extensions is [`src/extensions.txt`](src/extensions.txt) (also including `@quintinshaw/pi-dynamic-workflows`, `pi-ultra-compact`, `pi-fusion`, and the `@juicesharp/rpiv-*` toolset). All are registered automatically on first launch.
 
 Pi has no native permission system — every tool call runs without prompts. That's the equivalent of Claude Code's `--dangerously-skip-permissions`, on by default. If you ever want approval gating, install [`@gotgenes/pi-permission-system`](https://www.npmjs.com/package/@gotgenes/pi-permission-system).
 
