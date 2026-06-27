@@ -11,3 +11,5 @@ pi-lens
 @juicesharp/rpiv-web-tools
 @juicesharp/rpiv-workflow
 @quintinshaw/pi-dynamic-workflows
+pi-ultra-compact
+pi-fusion
