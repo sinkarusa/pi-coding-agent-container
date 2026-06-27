@@ -127,6 +127,8 @@ func main() {
 
 		rp := &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
+				origPath := req.URL.Path
+
 				req.URL.Scheme = rt.upstream.Scheme
 				req.URL.Host = rt.upstream.Host
 				req.Host = rt.upstream.Host
@@ -136,13 +138,29 @@ func main() {
 					req.URL.RawPath = stripPrefix(req.URL.RawPath, rt.prefix)
 				}
 
-				// Only inject credential when the incoming value is the placeholder or absent.
-				// Non-placeholder values (OAuth tokens, real keys) pass through untouched.
-				if key != "" {
-					if auth := rt.getAuth(req); auth == "" || auth == placeholder {
-						rt.setAuth(req, key)
-					}
+				// Classify the incoming credential so we can log what happened
+				// without ever printing the secret value itself.
+				incoming := rt.getAuth(req)
+				state := "passthrough"
+				switch {
+				case key == "":
+					state = "no-key-configured"
+				case incoming == "":
+					state = "injected (was empty)"
+					rt.setAuth(req, key)
+				case incoming == placeholder:
+					state = "injected (was placeholder)"
+					rt.setAuth(req, key)
+				default:
+					state = "passthrough (caller-supplied token)"
 				}
+
+				log.Printf("[req] %s %s → %s%s  auth=%s",
+					req.Method, origPath, rt.upstream.Host, req.URL.Path, state)
+			},
+			ModifyResponse: func(resp *http.Response) error {
+				log.Printf("[resp] %s%s → %d", rt.upstream.Host, resp.Request.URL.Path, resp.StatusCode)
+				return nil
 			},
 		}
 

@@ -7,8 +7,15 @@ Almost secure, containerized environment for running the [pi coding agent](https
 **1. Configuration**
 ```bash
 cp .env.example .env
-# Edit .env — add your GitHub token, Git identity, and any LLM API keys
+# Edit .env — add Git identity and any LLM API keys
+
+# Put your GitHub token in .secrets/github_token.txt (NOT .env):
+echo "ghp_yourtoken" > .secrets/github_token.txt
 ```
+
+> LLM API keys live in `.env`; the GitHub token lives **only** in
+> `.secrets/github_token.txt`. Neither is ever readable by the agent
+> (see [Security Architecture](#-security-architecture--paranoid-mode)).
 
 **2. Build**
 Compiles the image from source and strips OS privilege escalation binaries.
@@ -45,7 +52,11 @@ OPENROUTER_API_KEY=sk-or-...
 
 Three providers are routed through the credential-proxy sidecar: **Anthropic**, **OpenAI**, and **OpenRouter**. Other providers (Gemini, DeepSeek, Mistral, Groq, xAI, etc.) are not currently sandboxed through the proxy and will not be available to the agent.
 
-Keys flow: `.env` → docker-compose `environment` → `pi-entrypoint.sh` writes `~/.pi/agent/auth.json` — they never appear in any docker command or tracked file.
+**How keys flow (credential-proxy):** Your real LLM keys live only in `.env`, and docker-compose injects them into the **credential-proxy sidecar** — never into the agent container. The agent instead receives placeholders (`ANTHROPIC_API_KEY=proxy`, `OPENAI_API_KEY=proxy`, `OPENROUTER_API_KEY=proxy`), and on every start `pi-entrypoint.sh` writes `~/.pi/agent/models.json` so each provider's `baseUrl` points at the sidecar (`http://credential-proxy:8080/anthropic`, `/openai/v1`, `/openrouter/api/v1`) with `apiKey: "proxy"` as the placeholder the sidecar swaps for the real key. (Provider overrides must live in `models.json` — pi's `ModelRegistry` ignores a `providers` block in `settings.json`.)
+
+The proxy attaches the real credential to each outbound request on the way to the upstream API — `x-api-key` for Anthropic, `Bearer` for OpenAI/OpenRouter. So the agent can call the models but can never read the keys: they are not in its environment, its `auth.json`, or any tracked file.
+
+**OAuth/subscription users:** leave `ANTHROPIC_API_KEY` empty and use `/login anthropic` inside pi. OAuth tokens pass through the proxy **untouched** — it only injects a key when it sees the `proxy` placeholder — so the Pro/Max login flow works unchanged (session persisted in `~/.pi/agent/auth.json`).
 
 To check which providers are active after `make run`:
 ```bash
@@ -239,10 +250,11 @@ The container uses a guardrail wrapper (`gh-guard.sh`) around the GitHub CLI. Wh
 * This prevents a rogue agent from injecting a persistent backdoor key into your GitHub account.
 
 ### 2. The Micro-Vault (Token Isolation)
-Your `GITHUB_TOKEN` is **never** exposed in environment variables where the agent can read it via `process.env`.
-* The token is mapped as a Docker Secret into RAM (`tmpfs`) and locked to host permissions `000`.
-* The container runs as a standard user (`UID 1000`).
-* A custom C binary (`gh-vault`) uses SetUID to briefly elevate to root, read the token, pass it to the GitHub CLI, and immediately drop privileges. The agent natively receives `Permission Denied` if it attempts to read the file.
+Your GitHub token is sourced **only** from `.secrets/github_token.txt` (never from `.env`, never from `process.env`).
+* The file is mounted as a Docker Secret into RAM (`tmpfs`), with a randomized per-run target path (`/run/secrets/gh_<random>`) and locked to host permissions `000`.
+* The container runs as a standard user (`UID 1000`), so the agent gets `Permission Denied` if it tries to read the secret directly.
+* A custom SetUID C binary (`gh-vault`) briefly elevates to root, reads the token, hands it to the GitHub CLI for git operations, and immediately drops privileges.
+* The agent never sees a raw `GITHUB_TOKEN` env var: GitHub REST calls are pointed at the credential-proxy via `GITHUB_API_URL=http://credential-proxy:8080/github`, and the sidecar attaches the token (`Authorization: token …`) on the way out.
 
 ### 3. Dual Execution Firewalls
 To prevent the agent from reading your Copilot `auth.json` or `.env` files, we implemented firewalls at both the OS and Application layers:

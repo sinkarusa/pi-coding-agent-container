@@ -41,25 +41,45 @@ PY
 }
 
 # ---------------------------------------------------------------------------
-# 2. Patch pi settings.json on every start (idempotent):
+# 2. Patch pi models.json on every start (idempotent):
 #    - Route all LLM inference through the credential-proxy sidecar so real
 #      API keys never enter this container's address space.
+#
+#    Provider overrides (baseUrl/apiKey) are read from models.json, NOT
+#    settings.json — pi's ModelRegistry loads them from ~/.pi/agent/models.json
+#    (see config.getModelsJsonPath / model-registry.loadCustomModels). Writing
+#    them to settings.json is silently ignored, so requests fall back to the
+#    built-in upstreams (api.anthropic.com, openrouter.ai, …) with the "proxy"
+#    placeholder as the key and fail with 401s.
+#
+#    apiKey "proxy" is the placeholder the credential-proxy swaps for the real
+#    key. For Anthropic OAuth (Pro/Max) the access token from auth.json takes
+#    precedence over this placeholder, and the proxy passes it through untouched.
 # ---------------------------------------------------------------------------
 patch_pi_settings() {
 	python3 - <<'PY'
 import json, pathlib
 
-p = pathlib.Path.home() / ".pi/agent/settings.json"
-data = json.loads(p.read_text()) if p.exists() else {}
+agent = pathlib.Path.home() / ".pi/agent"
+agent.mkdir(parents=True, exist_ok=True)
+
+models = agent / "models.json"
+data = json.loads(models.read_text()) if models.exists() else {}
 
 data["providers"] = {
-    "anthropic":  {"baseUrl": "http://credential-proxy:8080/anthropic"},
-    "openai":     {"baseUrl": "http://credential-proxy:8080/openai/v1"},
-    "openrouter": {"baseUrl": "http://credential-proxy:8080/openrouter/api/v1"},
+    "anthropic":  {"baseUrl": "http://credential-proxy:8080/anthropic",          "apiKey": "proxy"},
+    "openai":     {"baseUrl": "http://credential-proxy:8080/openai/v1",          "apiKey": "proxy"},
+    "openrouter": {"baseUrl": "http://credential-proxy:8080/openrouter/api/v1",  "apiKey": "proxy"},
 }
 
-p.parent.mkdir(parents=True, exist_ok=True)
-p.write_text(json.dumps(data, indent=2) + "\n")
+models.write_text(json.dumps(data, indent=2) + "\n")
+
+# Drop the stale providers block from settings.json (it was never read there).
+settings = agent / "settings.json"
+if settings.exists():
+    s = json.loads(settings.read_text())
+    if s.pop("providers", None) is not None:
+        settings.write_text(json.dumps(s, indent=2) + "\n")
 PY
 }
 
