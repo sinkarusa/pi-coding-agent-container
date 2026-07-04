@@ -13,8 +13,20 @@ set -e
 register_extensions() {
 	mkdir -p "$HOME/.pi/agent" "$HOME/.claude"
 
-	# Build EXTS from the canonical extension list (single source of truth shared with Dockerfile)
-	EXTS="$(awk '{print "/usr/local/lib/node_modules/" $1}' /usr/local/lib/extensions.txt | tr '\n' ' ') /usr/local/lib/node_modules/mattpocock-skills"
+	# Build EXTS from the canonical extension list (single source of truth shared
+	# with Dockerfile). Each line is `name@version` (or a bare `name`); npm uses
+	# the version to pin the install, but the on-disk module dir is unversioned,
+	# so strip a trailing @version before forming the path. The stripped `@` is
+	# the rightmost one past index 1, leaving a scoped name's leading @scope intact.
+	EXTS="$(awk '{
+		name = $1
+		at = 0
+		for (i = length(name); i > 1; i--) {
+			if (substr(name, i, 1) == "@") { at = i; break }
+		}
+		if (at > 1) name = substr(name, 1, at - 1)
+		print "/usr/local/lib/node_modules/" name
+	}' /usr/local/lib/extensions.txt | tr '\n' ' ') /usr/local/lib/node_modules/mattpocock-skills"
 
 	EXTENSIONS_MARKER="$HOME/.pi/agent/.extensions-registered"
 	CURRENT_HASH=$(echo "$EXTS" | sha256sum | cut -d' ' -f1)
