@@ -97,9 +97,9 @@ COPY src/extensions.txt /usr/local/lib/extensions.txt
 
 # Infrastructure packages (pi agent core + dev tools — not pi extensions)
 RUN npm install -g \
-    @earendil-works/pi-coding-agent \
-    @earendil-works/pi-ai \
-    @earendil-works/pi-tui \
+    @earendil-works/pi-coding-agent@0.80.3 \
+    @earendil-works/pi-ai@0.80.3 \
+    @earendil-works/pi-tui@0.80.3 \
     @anthropic-ai/claude-code \
     typebox \
     yaml \
