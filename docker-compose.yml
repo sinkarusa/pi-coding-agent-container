@@ -71,7 +71,7 @@ services:
         target: /workspace
       - pi_data:/home/node/.pi
       - claude_data:/home/node/.claude
-      - ./.claude-data/.claude.json:/home/node/.claude.json
+      - ${CLAUDE_DATA_DIR:-${PWD}/.claude-data}/.claude.json:/home/node/.claude.json
 
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
 
@@ -102,14 +102,14 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ${PWD}/.pi-data
+      device: ${PI_DATA_DIR:-${PWD}/.pi-data}
 
   claude_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${PWD}/.claude-data
+      device: ${CLAUDE_DATA_DIR:-${PWD}/.claude-data}
 
 networks:
   pi_network:

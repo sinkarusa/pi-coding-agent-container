@@ -7,25 +7,48 @@ export PARANOID_MODE ?= true
 RANDOM_ID := $(shell openssl rand -hex 6 2>/dev/null || tr -dc a-f0-9 </dev/urandom 2>/dev/null | head -c 12)
 export SECRET_TARGET_PATH = /run/secrets/gh_$(RANDOM_ID)
 
+# --- Multi-instance isolation contract (foundation) ---
+# INSTANCE names an agent instance. It defaults to `default`, so a bare
+# `make run` reuses .instances/default and its sessions/model/auth persist
+# across runs (single-instance UX unchanged). Override for an addressable,
+# concurrent instance:  make run INSTANCE=<name>
+INSTANCE ?= default
+INSTANCE_ID := $(INSTANCE)
+export INSTANCE_ID
+
+# COMPOSE_PROJECT_NAME namespaces every container, network and named volume that
+# compose creates, so two concurrent instances never share pi_network, pi_data
+# or claude_data. Compose reads this automatically from the environment.
+export COMPOSE_PROJECT_NAME = pi-$(INSTANCE_ID)
+
+# Per-instance host-state roots under .instances/<id>/. Absolute paths are
+# mandatory: docker bind volumes (driver_opts.device) reject relative paths, and
+# each dir must pre-exist writable by $(HOST_UID):$(HOST_GID) because the
+# container runs read_only as a non-root user. Consumed by the already-
+# parameterized docker-compose.yml (pi_data/claude_data device: keys + .claude.json bind).
+INSTANCE_DIR := $(PWD)/.instances/$(INSTANCE_ID)
+export PI_DATA_DIR     ?= $(INSTANCE_DIR)/.pi-data
+export CLAUDE_DATA_DIR ?= $(INSTANCE_DIR)/.claude-data
+
 WORKSPACE_DIR ?= $(PWD)/workspace
 export WORKSPACE_DIR
 
 setup:
-	# -- directory scaffolding --
-	mkdir -p .pi-data .secrets .claude-data workspace src
-	chmod 700 .pi-data .secrets .claude-data workspace
-	# -- secret file bootstrap --
-	touch .claude-data/.claude.json
-	chmod 600 .claude-data/.claude.json
-	# .secrets/github_token.txt is the sole source for the GitHub token.
-	# Put your token there directly — do not set GITHUB_TOKEN in .env.
+	# -- per-instance directory scaffolding (matches the paths compose mounts) --
+	mkdir -p $(PI_DATA_DIR) $(CLAUDE_DATA_DIR) $(WORKSPACE_DIR) .secrets src
+	chmod 700 $(PI_DATA_DIR) $(CLAUDE_DATA_DIR) $(WORKSPACE_DIR) .secrets
+	# -- .claude.json bootstrap (per instance) --
+	touch $(CLAUDE_DATA_DIR)/.claude.json
+	chmod 600 $(CLAUDE_DATA_DIR)/.claude.json
+	# .secrets/github_token.txt is the sole GitHub token source, shared across
+	# instances. Put your token there directly — do not set GITHUB_TOKEN in .env.
 	@chmod 600 .secrets/github_token.txt 2>/dev/null || true
 	touch .secrets/github_token.txt
 	chmod 000 .secrets/github_token.txt
-	# -- auth.json sanitization --
+	# -- auth.json sanitization (per instance) --
 	@python3 -c "\
 import json, pathlib; \
-p = pathlib.Path('.pi-data/agent/auth.json'); \
+p = pathlib.Path('$(PI_DATA_DIR)/agent/auth.json'); \
 auth = json.loads(p.read_text()) if p.exists() else {}; \
 cleaned = {k: v for k, v in auth.items() if isinstance(v, dict) and v.get('type') != 'api_key'}; \
 changed = len(auth) - len(cleaned); \

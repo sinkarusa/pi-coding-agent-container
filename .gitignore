@@ -2,6 +2,7 @@
 .claude-data
 .secrets
 workspace
+.instances/
 .env
 .env.bkp
 experiments

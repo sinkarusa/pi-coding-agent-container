@@ -127,6 +127,23 @@ A [**fine-grained PAT**](https://github.com/settings/personal-access-tokens) is 
 
 `make setup` (directory + secret-file scaffolding) runs automatically before `build`/`run`, so you rarely call it directly.
 
+### Isolated instances
+
+Each instance keeps its own pi/claude state, sessions, model selection and OAuth under
+`.instances/<id>/`. A bare `make run` uses the persistent `default` instance; pass
+`INSTANCE=<id>` to run isolated instances concurrently:
+
+```bash
+make run                    # persistent default instance (.instances/default/)
+INSTANCE=review make run    # isolated instance (.instances/review/)
+INSTANCE=feature make run   # a second concurrent instance — different model/session
+```
+
+Setting the model in one instance never affects another. The shared GitHub token
+(`.secrets/github_token.txt`) is used by every instance. The workspace (`/workspace`)
+is **not** isolated — instances share the same working copy unless you point each at a
+different host path with `WORKSPACE_DIR=<path>`.
+
 ### Passing arguments
 
 ```bash
@@ -163,7 +180,7 @@ make run
 /model               # pick a Claude model — the extension shapes the request
 ```
 
-The OAuth session is written to `~/.pi/agent/auth.json` and persisted via the `./.pi-data/` volume, so later runs reuse the login. To confirm extensions loaded, check the `packages` array in `./.pi-data/agent/settings.json`.
+The OAuth session is written to `~/.pi/agent/auth.json` and persisted via the per-instance `.instances/<id>/.pi-data/` volume (default `.instances/default/.pi-data/`), so later runs of the same instance reuse the login. To confirm extensions loaded, check the `packages` array in `.instances/<id>/.pi-data/agent/settings.json`.
 
 ---
 
@@ -290,9 +307,9 @@ Keep overlay files in `.gitignore`; a gitignored `Makefile.local` is a good home
 
 ## Offline mode (llama.cpp)
 
-To run fully offline against a local model server, drop these into `.pi-data/agent/`:
+To run fully offline against a local model server, drop these into your instance's `.instances/<id>/.pi-data/agent/` dir (default `.instances/default/.pi-data/agent/`):
 
-**`.pi-data/agent/models.json`**
+**`.instances/<id>/.pi-data/agent/models.json`**
 ```json
 {
   "providers": {
@@ -306,7 +323,7 @@ To run fully offline against a local model server, drop these into `.pi-data/age
 }
 ```
 
-**`.pi-data/agent/settings.json`**
+**`.instances/<id>/.pi-data/agent/settings.json`**
 ```json
 {
   "defaultProvider": "llama-cpp",
