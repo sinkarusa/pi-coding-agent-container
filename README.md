@@ -9,7 +9,12 @@ Almost secure, containerized environment for running the [pi coding agent](https
 cp .env.example .env
 # Edit .env — add Git identity and any LLM API keys
 
-# Put your GitHub token in .secrets/github_token.txt (NOT .env):
+# Put your GitHub token in .secrets/github_token.txt (NOT .env).
+# Create the dir first — it does not exist on a fresh clone. `make build`
+# later locks this file to mode 000; the `rm -f` keeps these commands
+# working even if a previous build already created the locked file.
+mkdir -p .secrets
+rm -f .secrets/github_token.txt
 echo "ghp_yourtoken" > .secrets/github_token.txt
 ```
 
