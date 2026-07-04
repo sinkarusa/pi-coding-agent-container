@@ -65,7 +65,7 @@ ENV UV_PYTHON_PREFERENCE=only-system
 
 FROM base AS release
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:latest@sha256:3d868e555f8f1dbc324afa005066cd11e1053fc4743b9808ca8025283e65efa5 /uv /uvx /usr/local/bin/
 
 # -----------------------------------------------------------------------------
 # pi-lens tools — linters and formatters used by the coding agent

@@ -5,7 +5,7 @@ COPY src/credential-proxy/routes.json .
 RUN go mod init credential-proxy && \
     go build -ldflags="-s -w" -o credential-proxy .
 
-FROM alpine:3.21
+FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /build/credential-proxy /credential-proxy
 # routes.json lives next to the binary so loadRoutes() can find it
