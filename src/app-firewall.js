@@ -12,6 +12,11 @@ const SENSITIVE_PATTERNS = [
     { match: "includes", value: "/.env.",               reason: "environment file variants" },
 ];
 
+// Non-secret env templates the agent legitimately needs to read (e.g. to help
+// the user fill in .env). These match the `/.env.` variant pattern above but
+// carry no secrets, so they are exempted before the sensitive check.
+const SAFE_ENV_SUFFIXES = [".env.example", ".env.sample", ".env.template"];
+
 function block(p) {
     if (!p) return;
     const s = p.toString();
@@ -20,7 +25,9 @@ function block(p) {
     // models.json, sessions/, and extension state under .pi/agent are
     // legitimately needed by extensions like pi-subagents that load
     // from /tools/.
-    const isSensitive = SENSITIVE_PATTERNS.some(({ match, value }) => s[match](value));
+    const isSafeEnvTemplate = SAFE_ENV_SUFFIXES.some((suf) => s.endsWith(suf));
+    const isSensitive = !isSafeEnvTemplate
+        && SENSITIVE_PATTERNS.some(({ match, value }) => s[match](value));
 
     if (isSensitive) {
         if (new Error().stack.includes("/tools/")) {
@@ -29,30 +36,42 @@ function block(p) {
     }
 }
 
-// Intercept all major filesystem operations
+// Single-path fs operations — the path to guard is args[0].
 const hooks = [
-    "readFile", "readFileSync", "createReadStream", 
+    "readFile", "readFileSync", "createReadStream",
     "writeFile", "writeFileSync", "createWriteStream", "appendFile", "appendFileSync",
-    "open", "openSync", 
+    "open", "openSync",
     "unlink", "unlinkSync", "rm", "rmSync", "rmdir", "rmdirSync",
     "readdir", "readdirSync"
 ];
 
+// Two-path fs operations — BOTH source (args[0]) and destination (args[1])
+// can name a secret: copy/rename a secret out to an innocuous path, or
+// symlink/hardlink a secret to a path that later reads clean. Guard both.
+const twoPathHooks = [
+    "copyFile", "copyFileSync",
+    "rename", "renameSync",
+    "link", "linkSync",
+    "symlink", "symlinkSync"
+];
+
+// Wrap obj[fn] so it runs block() on its path argument(s) before delegating.
+function wrap(obj, fn, checkSecondArg) {
+    if (!obj || typeof obj[fn] !== "function") return;
+    const orig = obj[fn];
+    obj[fn] = function (...args) {
+        block(args[0]);
+        if (checkSecondArg) block(args[1]);
+        return orig.apply(this, args);
+    };
+}
+
 hooks.forEach(fn => {
-    // Hook standard fs callbacks/sync methods
-    if (fs[fn]) {
-        const orig = fs[fn];
-        fs[fn] = function(...args) { 
-            block(args[0]); 
-            return orig.apply(this, args); 
-        };
-    }
-    // Hook fs.promises methods
-    if (fs.promises && fs.promises[fn]) {
-        const origP = fs.promises[fn];
-        fs.promises[fn] = function(...args) { 
-            block(args[0]); 
-            return origP.apply(this, args); 
-        };
-    }
+    wrap(fs, fn, false);
+    wrap(fs.promises, fn, false);
+});
+
+twoPathHooks.forEach(fn => {
+    wrap(fs, fn, true);
+    wrap(fs.promises, fn, true);
 });
