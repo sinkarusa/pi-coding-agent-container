@@ -1,4 +1,4 @@
-.PHONY: build run run-args run-with-db clean shell setup update providers help
+.PHONY: build run run-args run-with-db run-gpu shell-gpu clean shell setup update providers help
 
 HOST_UID := $(shell id -u)
 HOST_GID := $(shell id -g)
@@ -50,6 +50,12 @@ run-args: setup
 run-with-db: setup
 	HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose -f docker-compose.yml -f docker-compose.db.yml run --rm pi-agent
 
+run-gpu: setup
+	HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm pi-agent
+
+shell-gpu: setup
+	HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --entrypoint /bin/bash --rm pi-agent
+
 shell: setup
 	HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose run --entrypoint /bin/bash --rm pi-agent
 
@@ -73,6 +79,8 @@ help:
 	@echo "  make build       build the image"
 	@echo "  make run         start pi"
 	@echo "  make run-args    pass args to pi  (e.g. make args='--version' run-args)"
+	@echo "  make run-gpu     start pi with NVIDIA GPU passthrough"
+	@echo "  make shell-gpu   open a shell in the container with GPU access"
 	@echo "  make shell       open a shell in the container"
 	@echo "  make providers   show active LLM providers"
 	@echo "  make clean       stop containers"

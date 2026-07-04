@@ -1,0 +1,41 @@
+# GPU overlay — NVIDIA GPU passthrough for the pi-agent service.
+#
+# Usage:
+#   WORKSPACE_DIR=~/Repos/Projects/rl-practice make run-gpu
+#   # or directly:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm pi-agent
+#
+# Requires nvidia-container-toolkit on the host (already installed) plus the
+# `nvidia` docker runtime / CDI registration in daemon.json (already present).
+# The device request below triggers the toolkit's OCI hook, which injects the
+# host driver + libcuda into the (read-only) container. torch cu12x wheels
+# bundle their own CUDA runtime, so nothing extra is needed in the image.
+services:
+  pi-agent:
+    environment:
+      # Expose all GPUs and the driver capabilities the toolkit injects.
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      # Keep model + JIT-kernel caches on the writable, exec-able workspace bind
+      # mount. The defaults land on RAM-backed tmpfs (~/.cache) or the noexec
+      # /tmp — and Triton / torch.compile dlopen() their JIT-compiled kernels,
+      # which fails from a noexec mount.
+      - HF_HOME=/workspace/.cache/huggingface
+      - HF_HUB_CACHE=/workspace/.cache/huggingface/hub
+      - TRITON_CACHE_DIR=/workspace/.cache/triton
+      - TORCHINDUCTOR_CACHE_DIR=/workspace/.cache/torchinductor
+      - TMPDIR=/workspace/.cache/tmp
+    deploy:
+      resources:
+        limits:
+          # ML data loading / tokenization needs far more host RAM than the 4g
+          # default. GPU VRAM is separate and not limited here.
+          memory: ${MEM_LIMIT:-24g}
+          cpus: "${CPUS:-8.0}"
+          # DataLoader workers and vLLM spawn many processes; 150 is too tight.
+          pids: 4096
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
