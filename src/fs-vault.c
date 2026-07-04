@@ -29,12 +29,28 @@ int is_blocked(const char *pathname) {
             close(fd);
 
             if (bytes > 0) {
-                for (ssize_t i = 0; i < bytes; i++) {
-                    if (cmdline[i] == '\0') cmdline[i] = ' ';
+                // /proc/self/cmdline is a NUL-separated argv vector. Walk it
+                // token by token and allow ONLY if a WHOLE argv token equals a
+                // known pi identifier. A substring match (the previous
+                // approach) let any process whose argv merely contained the
+                // bytes "pi " — e.g. `cat "x pi y" auth.json` — read the file.
+                // Ensure the buffer is NUL-terminated so the final token is
+                // bounded even when the read filled it completely.
+                if (bytes < (ssize_t)sizeof(cmdline)) {
+                    cmdline[bytes] = '\0';
+                } else {
+                    cmdline[sizeof(cmdline) - 1] = '\0';
                 }
-                // Allow the pi binary itself to read its auth.json.
-                if (strstr(cmdline, "pi ") != NULL || strstr(cmdline, "/bin/pi") != NULL) {
-                    return 0;
+                for (ssize_t i = 0; i < bytes; ) {
+                    const char *tok = &cmdline[i];
+                    size_t len = strlen(tok); // safe: buffer is NUL-terminated
+                    if (len == 0) { i++; continue; }
+                    if (strcmp(tok, "/usr/local/bin/pi") == 0 ||
+                        strcmp(tok, "pi") == 0 ||
+                        strstr(tok, "/pi-coding-agent/dist/cli.js") != NULL) {
+                        return 0;
+                    }
+                    i += (ssize_t)len + 1; // advance past this token and its NUL
                 }
             }
         }
