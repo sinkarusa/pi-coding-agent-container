@@ -96,7 +96,33 @@ PY
 }
 
 # ---------------------------------------------------------------------------
-# 3. Set the web search provider to SearXNG on every start.
+# 3. Install bundled TUI themes and make "darker" the default.
+#    Themes are copied from the image (/usr/local/lib/themes, outside the
+#    mounted volume) into $HOME/.pi/agent/themes on every start so image
+#    rebuilds always ship the latest palette. The default theme is only set
+#    when the user hasn't already chosen one, so a manual /settings pick or an
+#    explicit "theme" in settings.json is never overwritten.
+# ---------------------------------------------------------------------------
+install_themes() {
+	if [ -d /usr/local/lib/themes ]; then
+		mkdir -p "$HOME/.pi/agent/themes"
+		cp -f /usr/local/lib/themes/*.json "$HOME/.pi/agent/themes/" 2>/dev/null || true
+	fi
+
+	python3 - <<'PY'
+import json, pathlib
+
+p = pathlib.Path.home() / ".pi/agent/settings.json"
+data = json.loads(p.read_text()) if p.exists() else {}
+if not data.get("theme"):
+    data["theme"] = "darker"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(data, indent=2) + "\n")
+PY
+}
+
+# ---------------------------------------------------------------------------
+# 4. Set the web search provider to SearXNG on every start.
 #    /home/node/.config is a tmpfs (wiped on restart) so the default is
 #    always written; interactive /web-tools overrides persist for the session.
 # ---------------------------------------------------------------------------
@@ -117,6 +143,7 @@ PY
 # ---------------------------------------------------------------------------
 register_extensions
 patch_pi_settings
+install_themes
 default_search_provider
 
 exec pi "$@"

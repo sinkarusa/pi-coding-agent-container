@@ -204,6 +204,12 @@ The **canonical, version-pinned list** is [`src/extensions.txt`](src/extensions.
 
 ---
 
+## Bundled theme
+
+Beyond pi's built-in `dark` and `light`, this image ships a custom **`darker`** TUI theme — a low-saturation dark palette with a teal accent and VS Code Dark+ syntax colors. Themes live in [`src/themes/`](src/themes/); `pi-entrypoint.sh` copies them into `~/.pi/agent/themes/` on every start and sets `darker` as the default **only when you haven't already picked a theme** (a manual `/settings` choice or an explicit `"theme"` in `settings.json` is never overwritten). Switch anytime via `/settings`.
+
+---
+
 ## GPU passthrough
 
 `docker-compose.gpu.yml` is an overlay that hands the agent your NVIDIA GPU(s) for local ML work (PyTorch, vLLM, etc.).

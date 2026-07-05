@@ -95,6 +95,10 @@ RUN UV_TOOL_BIN_DIR=/usr/local/bin uv tool install ruff \
 
 COPY src/extensions.txt /usr/local/lib/extensions.txt
 
+# Bundled TUI themes — installed into $HOME/.pi/agent/themes by the entrypoint
+# (kept outside the mounted volume so image rebuilds ship the latest copy).
+COPY src/themes/ /usr/local/lib/themes/
+
 # Infrastructure packages (pi agent core + dev tools — not pi extensions)
 RUN npm install -g \
     @earendil-works/pi-coding-agent@0.80.3 \
