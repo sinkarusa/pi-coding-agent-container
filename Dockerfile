@@ -101,9 +101,9 @@ COPY src/themes/ /usr/local/lib/themes/
 
 # Infrastructure packages (pi agent core + dev tools — not pi extensions)
 RUN npm install -g \
-    @earendil-works/pi-coding-agent@0.80.3 \
-    @earendil-works/pi-ai@0.80.3 \
-    @earendil-works/pi-tui@0.80.3 \
+    @earendil-works/pi-coding-agent@0.80.6 \
+    @earendil-works/pi-ai@0.80.6 \
+    @earendil-works/pi-tui@0.80.6 \
     @anthropic-ai/claude-code \
     typebox \
     yaml \
